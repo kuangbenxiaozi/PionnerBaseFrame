@@ -1,11 +1,12 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion rootProject.compileSdkVersion
+    compileSdkVersion 28
+    buildToolsVersion '28.0.3'
 
     defaultConfig {
-        minSdkVersion rootProject.minsdkVersion
-        targetSdkVersion rootProject.targetSdkVersion
+        minSdkVersion 19
+        targetSdkVersion 28
         versionCode 1
         versionName "1.0"
     }
@@ -34,17 +35,69 @@ android {
     useLibrary 'org.apache.http.legacy'
 }
 
+ext {
+    //compile version
+    compileSdkVersion = 28
+    //build tools version
+    buildToolsVersion = '28.0.0'
+    //min sdk version
+    minsdkVersion = 19
+    //target Version
+    targetSdkVersion = 28
+    //support lib version
+    supportVersion = '28.0.0'
+
+    frameName = 'PionnerBaseFrame-release'
+    frameJarName = 'PionnerBaseFrame_v' + versionName + ".jar"
+    frameAarName = 'PionnerBaseFrame_v' + versionName + ".aar"
+}
+
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    api fileTree(dir: 'libs', include: ['*.jar'])
 
-    api "com.android.support:appcompat-v7:$rootProject.supportVersion"
-    api "com.android.support.constraint:constraint-layout:$rootProject.constraintVersion"
+    if (!rootProject.base_network_local) {
+        api files("private_libs/PionnerBaseNetwork_v1.0.0.aar")
+    } else {
+        // 开发时手动打开，不需要上传
+        api project(':module:PionnerBaseNetwork')
+    }
 
-    api project(':module:PionnerBaseNetwork')
-    api project(':module:PionnerBaseToolkit')
+    if (!rootProject.base_tookit_local) {
+        api files("private_libs/PionnerBaseToolkit_v1.0.0.aar")
+    } else {
+        // 开发时手动打开，不需要上传
+        api project(':module:PionnerBaseToolkit')
+    }
+
+    api "com.android.support:appcompat-v7:$supportVersion"
+    api "com.android.support.constraint:constraint-layout:$constraintVersion"
 
     implementation "android.arch.lifecycle:extensions:1.1.1"
     annotationProcessor "android.arch.lifecycle:compiler:1.1.1"
+}
 
+task makeFrameJar(type: Jar) {
+    dependsOn build
+    dependsOn clean
+    build.mustRunAfter clean
 
+    //导出的jar文件名称
+    archiveName = "$frameJarName"
+    //从哪个目录打包jar
+    from('build/intermediates/packaged-classes/release/classes.jar')
+    //from('build/intermediates/packaged-classes/debug/classes.jar')
+    //导出的jar文件的存放目录（未指定则默认存放在build/libs下）
+    destinationDir = file('build/libs')
+}
+
+task makeFrameAar(type: Copy) {
+    dependsOn build
+    dependsOn clean
+    build.mustRunAfter clean
+
+    from 'build/outputs/aar/' + "$frameName" + '.aar'
+    into 'build/libs'
+    rename {
+        String fileName -> "$frameAarName"
+    }
 }
